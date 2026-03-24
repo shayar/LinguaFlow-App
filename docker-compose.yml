@@ -1,0 +1,58 @@
+services:
+  web:
+    build:
+      context: ./apps/web
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+    command: npm run dev
+    depends_on:
+      - postgres
+      - mongo
+
+  ai-service:
+    build:
+      context: ./apps/ai-service
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./apps/ai-service:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - postgres
+      - mongo
+
+  core-service:
+    build:
+      context: ./apps/core-service
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:17
+    container_name: linguaflow-postgres
+    environment:
+      POSTGRES_USER: linguaflow
+      POSTGRES_PASSWORD: linguaflow_password
+      POSTGRES_DB: linguaflow_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  mongo:
+    image: mongo:8
+    container_name: linguaflow-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  postgres_data:
+  mongo_data:
