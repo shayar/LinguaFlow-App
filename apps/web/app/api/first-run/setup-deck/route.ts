@@ -9,7 +9,6 @@ type StarterCard = {
   pronunciation?: string;
   exampleSentence?: string;
   explanation?: string;
-  metadata?: Record<string, unknown>;
 };
 
 type StarterDeckConfig = {
@@ -27,177 +26,87 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
     difficultyLevel: "Beginner",
     category: "starter-basics",
     cards: [
-      {
-        targetWord: "hola",
-        translation: "hello",
-        pronunciation: "OH-lah",
-        exampleSentence: "Hola, ¿cómo estás?",
-        explanation: "A common greeting used to say hello.",
-      },
-      {
-        targetWord: "gracias",
-        translation: "thank you",
-        pronunciation: "GRAH-see-ahs",
-        exampleSentence: "Gracias por tu ayuda.",
-        explanation: "Used to thank someone.",
-      },
-      {
-        targetWord: "agua",
-        translation: "water",
-        pronunciation: "AH-gwah",
-        exampleSentence: "Necesito agua.",
-        explanation: "The Spanish word for water.",
-      },
+      { targetWord: "hola", translation: "hello", pronunciation: "OH-lah", exampleSentence: "Hola, ¿cómo estás?", explanation: "A common greeting." },
+      { targetWord: "gracias", translation: "thank you", pronunciation: "GRAH-see-ahs", exampleSentence: "Gracias por tu ayuda.", explanation: "Used to thank someone." },
+      { targetWord: "agua", translation: "water", pronunciation: "AH-gwah", exampleSentence: "Necesito agua.", explanation: "A common everyday word." },
+      { targetWord: "casa", translation: "house", pronunciation: "KAH-sah", exampleSentence: "Mi casa es pequeña.", explanation: "A common noun for house." },
+      { targetWord: "comer", translation: "to eat", pronunciation: "ko-MEHR", exampleSentence: "Quiero comer ahora.", explanation: "A basic verb." },
+      { targetWord: "amigo", translation: "friend", pronunciation: "ah-MEE-go", exampleSentence: "Él es mi amigo.", explanation: "A common noun for friend." },
     ],
   },
-
-  "English:Beginner": {
-    title: "English Starter Basics",
-    language: "English",
-    difficultyLevel: "Beginner",
-    category: "starter-basics",
-    cards: [
-      {
-        targetWord: "hello",
-        translation: "hello",
-        pronunciation: "heh-LOH",
-        exampleSentence: "Hello, how are you?",
-        explanation: "A very common way to greet someone.",
-      },
-      {
-        targetWord: "water",
-        translation: "water",
-        pronunciation: "WAW-ter",
-        exampleSentence: "I need water.",
-        explanation: "A common everyday noun.",
-      },
-      {
-        targetWord: "friend",
-        translation: "friend",
-        pronunciation: "frend",
-        exampleSentence: "She is my friend.",
-        explanation: "A common noun for a person close to you.",
-      },
-    ],
-  },
-
-  "Nepali:Beginner": {
-    title: "Nepali Starter Basics",
-    language: "Nepali",
-    difficultyLevel: "Beginner",
-    category: "starter-basics",
-    cards: [
-      {
-        targetWord: "नमस्ते",
-        translation: "hello",
-        pronunciation: "na-mas-te",
-        exampleSentence: "नमस्ते, तपाईंलाई कस्तो छ?",
-        explanation: "A common greeting used to say hello.",
-      },
-      {
-        targetWord: "धन्यवाद",
-        translation: "thank you",
-        pronunciation: "dha-nya-baad",
-        exampleSentence: "तपाईंलाई धन्यवाद।",
-        explanation: "Used to thank someone.",
-      },
-      {
-        targetWord: "पानी",
-        translation: "water",
-        pronunciation: "paa-ni",
-        exampleSentence: "मलाई पानी चाहिन्छ।",
-        explanation: "The Nepali word for water.",
-      },
-    ],
-  },
-
   "French:Beginner": {
     title: "French Starter Basics",
     language: "French",
     difficultyLevel: "Beginner",
     category: "starter-basics",
     cards: [
-      {
-        targetWord: "bonjour",
-        translation: "hello",
-        pronunciation: "bon-ZHOOR",
-        exampleSentence: "Bonjour, comment ça va ?",
-        explanation: "A common greeting used to say hello.",
-      },
-      {
-        targetWord: "merci",
-        translation: "thank you",
-        pronunciation: "mehr-SEE",
-        exampleSentence: "Merci pour ton aide.",
-        explanation: "Used to thank someone.",
-      },
-      {
-        targetWord: "eau",
-        translation: "water",
-        pronunciation: "oh",
-        exampleSentence: "Je veux de l'eau.",
-        explanation: "The French word for water.",
-      },
+      { targetWord: "bonjour", translation: "hello", pronunciation: "bon-ZHOOR", exampleSentence: "Bonjour, comment ça va ?", explanation: "A common greeting." },
+      { targetWord: "merci", translation: "thank you", pronunciation: "mehr-SEE", exampleSentence: "Merci pour ton aide.", explanation: "Used to thank someone." },
+      { targetWord: "eau", translation: "water", pronunciation: "oh", exampleSentence: "Je veux de l'eau.", explanation: "A common everyday word." },
+      { targetWord: "maison", translation: "house", pronunciation: "meh-ZON", exampleSentence: "Ma maison est ici.", explanation: "A common noun for house." },
+      { targetWord: "manger", translation: "to eat", pronunciation: "mahn-ZHAY", exampleSentence: "Je vais manger maintenant.", explanation: "A basic verb." },
+      { targetWord: "ami", translation: "friend", pronunciation: "ah-MEE", exampleSentence: "Il est mon ami.", explanation: "A common noun for friend." },
+    ],
+  },
+  "Nepali:Beginner": {
+    title: "Nepali Starter Basics",
+    language: "Nepali",
+    difficultyLevel: "Beginner",
+    category: "starter-basics",
+    cards: [
+      { targetWord: "नमस्ते", translation: "hello", pronunciation: "na-mas-te", exampleSentence: "नमस्ते, तपाईंलाई कस्तो छ?", explanation: "A common greeting." },
+      { targetWord: "धन्यवाद", translation: "thank you", pronunciation: "dha-nya-baad", exampleSentence: "तपाईंलाई धन्यवाद।", explanation: "Used to thank someone." },
+      { targetWord: "पानी", translation: "water", pronunciation: "paa-ni", exampleSentence: "मलाई पानी चाहिन्छ।", explanation: "A common everyday word." },
+      { targetWord: "घर", translation: "house", pronunciation: "ghar", exampleSentence: "यो मेरो घर हो।", explanation: "A common noun for house." },
+      { targetWord: "खानु", translation: "to eat", pronunciation: "kha-nu", exampleSentence: "म खाना खानु चाहन्छु।", explanation: "A basic verb." },
+      { targetWord: "साथी", translation: "friend", pronunciation: "saa-thi", exampleSentence: "ऊ मेरो साथी हो।", explanation: "A common noun for friend." },
+    ],
+  },
+  "English:Beginner": {
+    title: "English Starter Basics",
+    language: "English",
+    difficultyLevel: "Beginner",
+    category: "starter-basics",
+    cards: [
+      { targetWord: "hello", translation: "hello", pronunciation: "heh-LOH", exampleSentence: "Hello, how are you?", explanation: "A common greeting." },
+      { targetWord: "water", translation: "water", pronunciation: "WAW-ter", exampleSentence: "I need water.", explanation: "A common everyday word." },
+      { targetWord: "house", translation: "house", pronunciation: "hous", exampleSentence: "This is my house.", explanation: "A common noun for house." },
+      { targetWord: "friend", translation: "friend", pronunciation: "frend", exampleSentence: "She is my friend.", explanation: "A common noun for friend." },
+      { targetWord: "eat", translation: "to eat", pronunciation: "eet", exampleSentence: "We eat together.", explanation: "A basic verb." },
+      { targetWord: "book", translation: "book", pronunciation: "buk", exampleSentence: "I have a book.", explanation: "A common noun for reading." },
     ],
   },
 };
 
 function normalizeLevel(level: string | null | undefined): string {
   if (!level) return "Beginner";
-
   const normalized = level.trim().toLowerCase();
-
-  if (normalized === "beginner") return "Beginner";
-  if (normalized === "elementary") return "Elementary";
-  if (normalized === "intermediate") return "Intermediate";
   if (normalized === "advanced") return "Advanced";
-
+  if (normalized === "intermediate") return "Intermediate";
+  if (normalized === "elementary") return "Elementary";
   return "Beginner";
 }
 
-function chooseStarterDeck(
-  targetLanguage: string,
-  verifiedLevel: string | null,
-  selfReportedLevel: string | null
-): StarterDeckConfig {
+function chooseStarterDeck(targetLanguage: string, verifiedLevel: string | null, selfReportedLevel: string | null) {
   const chosenLevel = normalizeLevel(verifiedLevel ?? selfReportedLevel);
-  const exactKey = `${targetLanguage}:${chosenLevel}`;
-  const beginnerKey = `${targetLanguage}:Beginner`;
-
   return (
-    STARTER_DECKS[exactKey] ??
-    STARTER_DECKS[beginnerKey] ??
+    STARTER_DECKS[`${targetLanguage}:${chosenLevel}`] ??
+    STARTER_DECKS[`${targetLanguage}:Beginner`] ??
     STARTER_DECKS["English:Beginner"]
   );
 }
 
-function buildNativeTranslation(
-  sentence: string,
-  targetWord: string,
-  translation: string,
-  nativeLanguage: string | null
-) {
-  const native = (nativeLanguage ?? "English").toLowerCase();
-
-  if (native === "english") {
-    return `${sentence} [English meaning: ${translation}]`;
-  }
-
-  return `${sentence} [${nativeLanguage ?? "English"} meaning: ${translation}]`;
-}
-
 function buildGlossItems(sentence: string, targetWord: string, translation: string) {
   const tokens = sentence.match(/[A-Za-zÀ-ÿ\u0900-\u097F']+|[.,!?;:¿¡]/g) ?? [];
+  return tokens.map((token) => ({
+    token,
+    gloss: token.toLowerCase() === targetWord.toLowerCase() ? translation : "",
+    isTarget: token.toLowerCase() === targetWord.toLowerCase(),
+  }));
+}
 
-  return tokens.map((token) => {
-    const isTarget = token.toLowerCase() === targetWord.toLowerCase();
-
-    return {
-      token,
-      gloss: isTarget ? translation : "",
-      isTarget,
-    };
-  });
+function buildNativeMeaning(sentence: string, translation: string, nativeLanguage: string | null) {
+  return `${sentence} [${nativeLanguage ?? "English"} meaning: ${translation}]`;
 }
 
 export async function POST() {
@@ -206,7 +115,11 @@ export async function POST() {
 
     const profileResult = await db.query(
       `
-        SELECT target_language, verified_level, self_reported_level, native_language
+        SELECT
+          native_language,
+          target_language,
+          verified_level,
+          self_reported_level
         FROM learner_profiles
         WHERE user_id = $1
         LIMIT 1
@@ -216,7 +129,7 @@ export async function POST() {
 
     if (profileResult.rows.length === 0) {
       return NextResponse.json(
-        { error: "Learner profile not found" },
+        { error: "Learner profile not found." },
         { status: 404 }
       );
     }
@@ -228,25 +141,25 @@ export async function POST() {
       profile.self_reported_level
     );
 
-    const nativeLanguage = profile.native_language ?? "English";
     const starterSourceId = await getContentSourceIdByName("Internal Starter Decks");
-
     const client = await db.connect();
 
     try {
       await client.query("BEGIN");
 
-      let deckId: string;
-
       const existingDeckResult = await client.query(
         `
           SELECT id
           FROM decks
-          WHERE title = $1 AND language = $2
+          WHERE title = $1
+            AND language = $2
+            AND owner_user_id = $3
           LIMIT 1
         `,
-        [starterDeck.title, starterDeck.language]
+        [starterDeck.title, starterDeck.language, currentUser.id]
       );
+
+      let deckId: string;
 
       if (existingDeckResult.rows.length > 0) {
         deckId = existingDeckResult.rows[0].id;
@@ -261,9 +174,12 @@ export async function POST() {
               category,
               source_id,
               quality_score,
+              owner_user_id,
+              visibility,
+              deck_origin,
               metadata_json
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb)
             RETURNING id
           `,
           [
@@ -274,9 +190,12 @@ export async function POST() {
             starterDeck.category,
             starterSourceId,
             90,
+            currentUser.id,
+            "private",
+            "starter",
             JSON.stringify({
               sourceLabel: "Internal Starter Decks",
-              generationMode: "starter-seeded",
+              setupMode: "first_run",
             }),
           ]
         );
@@ -284,20 +203,9 @@ export async function POST() {
         deckId = insertedDeckResult.rows[0].id;
 
         for (const card of starterDeck.cards) {
-          const exampleSentence = card.exampleSentence ?? `${card.targetWord}`;
-          const exampleTranslationNative = buildNativeTranslation(
-            exampleSentence,
-            card.targetWord,
-            card.translation,
-            nativeLanguage
-          );
-          const glossItems = buildGlossItems(
-            exampleSentence,
-            card.targetWord,
-            card.translation
-          );
+          const exampleSentence = card.exampleSentence ?? card.targetWord;
 
-          await client.query(
+          const insertedCard = await client.query(
             `
               INSERT INTO cards (
                 deck_id,
@@ -311,6 +219,7 @@ export async function POST() {
                 metadata_json
               )
               VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb)
+              RETURNING id
             `,
             [
               deckId,
@@ -318,73 +227,63 @@ export async function POST() {
               card.translation,
               card.pronunciation ?? null,
               exampleSentence,
-              exampleTranslationNative,
+              buildNativeMeaning(exampleSentence, card.translation, profile.native_language),
               card.explanation ?? null,
-              JSON.stringify(glossItems),
-              JSON.stringify(card.metadata ?? {}),
+              JSON.stringify(buildGlossItems(exampleSentence, card.targetWord, card.translation)),
+              JSON.stringify({}),
             ]
           );
-        }
-      }
 
-      const deckCardsResult = await client.query(
-        `
-          SELECT id
-          FROM cards
-          WHERE deck_id = $1
-        `,
-        [deckId]
-      );
-
-      let assignedCount = 0;
-
-      for (const row of deckCardsResult.rows) {
-        const insertResult = await client.query(
-          `
-            INSERT INTO learner_cards (
-              user_id,
-              card_id,
-              bucket,
-              mastery_score,
-              streak_count
-            )
-            VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT (user_id, card_id) DO NOTHING
-            RETURNING id
-          `,
-          [currentUser.id, row.id, "learning", 0, 0]
-        );
-
-        if (insertResult.rowCount && insertResult.rowCount > 0) {
-          assignedCount += 1;
+          await client.query(
+            `
+              INSERT INTO learner_cards (
+                user_id,
+                card_id,
+                bucket,
+                mastery_score,
+                streak_count
+              )
+              VALUES ($1, $2, $3, $4, $5)
+              ON CONFLICT (user_id, card_id) DO NOTHING
+            `,
+            [currentUser.id, insertedCard.rows[0].id, "learning", 0, 0]
+          );
         }
       }
 
       await client.query("COMMIT");
 
+      const assignedCountResult = await db.query(
+        `
+          SELECT COUNT(*)::int AS count
+          FROM learner_cards lc
+          INNER JOIN cards c ON c.id = lc.card_id
+          WHERE lc.user_id = $1
+            AND c.deck_id = $2
+        `,
+        [currentUser.id, deckId]
+      );
+
       return NextResponse.json({
-        message: "Starter deck setup completed",
+        message: "Starter deck set up successfully.",
         deckId,
-        assignedCount,
-        language: starterDeck.language,
-        difficultyLevel: starterDeck.difficultyLevel,
-        nativeLanguage,
+        assignedCount: assignedCountResult.rows[0]?.count ?? 0,
       });
-    } catch (transactionError) {
+    } catch (error) {
       await client.query("ROLLBACK");
-      throw transactionError;
+      throw error;
     } finally {
       client.release();
     }
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
-    console.error("First-run deck setup error:", error);
+    console.error("First run setup deck error:", error);
 
     return NextResponse.json(
-      { error: "Failed to set up starter deck" },
+      { error: "Failed to set up starter deck." },
       { status: 500 }
     );
   }

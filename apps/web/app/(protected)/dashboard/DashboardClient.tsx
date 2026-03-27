@@ -46,7 +46,6 @@ export default function DashboardClient() {
   const [reviewedToday, setReviewedToday] = useState(0);
   const [dailyGoal, setDailyGoal] = useState(10);
   const [dueNow, setDueNow] = useState<FocusWord[]>([]);
-  const [weakWords, setWeakWords] = useState<FocusWord[]>([]);
   const [decks, setDecks] = useState<DeckSummary[]>([]);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -67,7 +66,6 @@ export default function DashboardClient() {
         setReviewedToday(result.reviewedToday ?? 0);
         setDailyGoal(result.dailyGoal ?? 10);
         setDueNow(result.dueNow ?? []);
-        setWeakWords(result.weakWords ?? []);
         setDecks(result.decks ?? []);
       } catch (error) {
         console.error(error);
@@ -104,16 +102,17 @@ export default function DashboardClient() {
 
       {!isLoading ? (
         <>
-          <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
             <div className="rounded-[32px] border border-stone-200 bg-[#FFFDF8] p-8 dark:border-white/10 dark:bg-[#0f172a]">
               <p className="text-sm font-medium text-sky-700 dark:text-cyan-200">
-                Today
+                Home
               </p>
+
               <h1 className="mt-3 text-4xl font-semibold tracking-tight text-stone-900 dark:text-white sm:text-5xl">
-                Learn {profile?.target_language ?? "your language"}
+                Continue learning
               </h1>
 
-              <div className="mt-6 flex flex-wrap items-center gap-2">
+              <div className="mt-5 flex flex-wrap items-center gap-2">
                 {profile?.target_language ? (
                   <span className="rounded-full border border-stone-200 bg-white px-3 py-1 text-xs text-stone-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
                     {profile.target_language}
@@ -131,28 +130,28 @@ export default function DashboardClient() {
                 </span>
               </div>
 
-              <div className="mt-8 flex flex-wrap gap-3">
+              <div className="mt-8 flex gap-3">
                 <button
                   type="button"
                   onClick={() => router.push("/study")}
                   className="rounded-2xl bg-stone-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-stone-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
                 >
-                  Start learning
+                  Start study
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => router.push("/placement")}
+                  onClick={() => router.push("/decks")}
                   className="rounded-2xl border border-stone-200 bg-white px-5 py-3 text-sm font-medium text-stone-800 transition hover:bg-stone-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
                 >
-                  Placement
+                  Open decks
                 </button>
               </div>
             </div>
 
             <div className="rounded-[32px] border border-stone-200 bg-[#FFFDF8] p-8 dark:border-white/10 dark:bg-[#0f172a]">
               <p className="text-sm font-medium text-stone-900 dark:text-white">
-                Daily progress
+                Daily goal
               </p>
 
               <div className="mt-6">
@@ -173,7 +172,7 @@ export default function DashboardClient() {
                 </div>
               </div>
 
-              <div className="mt-8 grid gap-3 sm:grid-cols-3">
+              <div className="mt-8 grid grid-cols-3 gap-3">
                 <div className="rounded-2xl border border-stone-200 bg-white p-4 text-center dark:border-white/10 dark:bg-white/5">
                   <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-slate-400">
                     Known
@@ -204,7 +203,7 @@ export default function DashboardClient() {
             </div>
           </section>
 
-          <section className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
+          <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
             <div className="rounded-[32px] border border-stone-200 bg-[#FFFDF8] p-8 dark:border-white/10 dark:bg-[#0f172a]">
               <div className="mb-5 flex items-center justify-between gap-3">
                 <p className="text-sm font-medium text-stone-900 dark:text-white">
@@ -215,7 +214,7 @@ export default function DashboardClient() {
                   onClick={() => router.push("/study")}
                   className="rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-800 transition hover:bg-stone-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
                 >
-                  Open study
+                  Study
                 </button>
               </div>
 
@@ -240,115 +239,60 @@ export default function DashboardClient() {
                       <p className="mt-1 text-sm text-stone-600 dark:text-slate-300">
                         {word.translation}
                       </p>
-
-                      {word.example_sentence ? (
-                        <p className="mt-3 line-clamp-2 text-xs leading-5 text-stone-500 dark:text-slate-400">
-                          {word.example_sentence}
-                        </p>
-                      ) : null}
                     </button>
                   ))
                 ) : (
                   <div className="rounded-2xl border border-dashed border-stone-300 bg-white p-5 text-sm text-stone-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
-                    No words due right now.
+                    No focus words right now.
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="space-y-6">
-              <div className="rounded-[32px] border border-stone-200 bg-[#FFFDF8] p-8 dark:border-white/10 dark:bg-[#0f172a]">
-                <div className="mb-5 flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium text-stone-900 dark:text-white">
-                    Review next
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => router.push("/decks")}
-                    className="rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-800 transition hover:bg-stone-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-                  >
-                    My Decks
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {weakWords.length > 0 ? (
-                    weakWords.map((word) => (
-                      <button
-                        key={word.learner_card_id}
-                        type="button"
-                        onClick={() => router.push(`/words/${word.learner_card_id}`)}
-                        className="w-full rounded-2xl border border-stone-200 bg-white p-4 text-left transition hover:bg-stone-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold text-stone-900 dark:text-white">
-                              {word.target_word}
-                            </p>
-                            <p className="mt-1 text-xs text-stone-500 dark:text-slate-400">
-                              {word.translation}
-                            </p>
-                          </div>
-
-                          <span className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-[11px] text-stone-700 dark:border-white/10 dark:bg-black/20 dark:text-slate-300">
-                            {word.bucket}
-                          </span>
-                        </div>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="rounded-2xl border border-dashed border-stone-300 bg-white p-4 text-sm text-stone-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
-                      No weak words right now.
-                    </div>
-                  )}
-                </div>
+            <div className="rounded-[32px] border border-stone-200 bg-[#FFFDF8] p-8 dark:border-white/10 dark:bg-[#0f172a]">
+              <div className="mb-5 flex items-center justify-between gap-3">
+                <p className="text-sm font-medium text-stone-900 dark:text-white">
+                  Decks
+                </p>
+                <button
+                  type="button"
+                  onClick={() => router.push("/decks")}
+                  className="rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-800 transition hover:bg-stone-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                >
+                  View all
+                </button>
               </div>
 
-              <div className="rounded-[32px] border border-stone-200 bg-[#FFFDF8] p-8 dark:border-white/10 dark:bg-[#0f172a]">
-                <div className="mb-5 flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium text-stone-900 dark:text-white">
-                    Decks
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => router.push("/decks")}
-                    className="rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-medium text-stone-800 transition hover:bg-stone-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-                  >
-                    View all
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {decks.length > 0 ? (
-                    decks.map((deck) => (
-                      <button
-                        key={deck.id}
-                        type="button"
-                        onClick={() => router.push(`/decks/${deck.id}`)}
-                        className="w-full rounded-2xl border border-stone-200 bg-white p-4 text-left transition hover:bg-stone-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold text-stone-900 dark:text-white">
-                              {deck.title}
-                            </p>
-                            <p className="mt-1 text-xs text-stone-500 dark:text-slate-400">
-                              {deck.language} • {deck.card_count} cards
-                            </p>
-                          </div>
-
-                          <span className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-[11px] text-stone-700 dark:border-white/10 dark:bg-black/20 dark:text-slate-300">
-                            {Math.round(deck.avg_mastery_score || 0)}
-                          </span>
+              <div className="space-y-3">
+                {decks.length > 0 ? (
+                  decks.map((deck) => (
+                    <button
+                      key={deck.id}
+                      type="button"
+                      onClick={() => router.push(`/decks/${deck.id}`)}
+                      className="w-full rounded-2xl border border-stone-200 bg-white p-4 text-left transition hover:bg-stone-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-stone-900 dark:text-white">
+                            {deck.title}
+                          </p>
+                          <p className="mt-1 text-xs text-stone-500 dark:text-slate-400">
+                            {deck.language} • {deck.card_count} cards
+                          </p>
                         </div>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="rounded-2xl border border-dashed border-stone-300 bg-white p-4 text-sm text-stone-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
-                      No decks yet.
-                    </div>
-                  )}
-                </div>
+
+                        <span className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-[11px] text-stone-700 dark:border-white/10 dark:bg-black/20 dark:text-slate-300">
+                          {Math.round(deck.avg_mastery_score || 0)}
+                        </span>
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-stone-300 bg-white p-4 text-sm text-stone-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
+                    No decks yet.
+                  </div>
+                )}
               </div>
             </div>
           </section>

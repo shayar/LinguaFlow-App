@@ -23,6 +23,9 @@ type QueueRow = {
   }> | null;
   deck_title: string;
   language: string;
+  metadata_json?: Record<string, unknown> | null;
+  example_mode?: string | null;
+  mode_reason?: string | null;
 };
 
 type StarterCard = {
@@ -55,6 +58,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "OH-lah",
         exampleSentence: "Hola, ¿cómo estás?",
         explanation: "A common greeting used to say hello.",
+        metadata: {
+          exampleMode: "micro_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
       {
         targetWord: "gracias",
@@ -62,6 +69,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "GRAH-see-ahs",
         exampleSentence: "Gracias por tu ayuda.",
         explanation: "Used to thank someone.",
+        metadata: {
+          exampleMode: "micro_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
       {
         targetWord: "agua",
@@ -69,6 +80,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "AH-gwah",
         exampleSentence: "Necesito agua.",
         explanation: "The Spanish word for water.",
+        metadata: {
+          exampleMode: "micro_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
       {
         targetWord: "casa",
@@ -76,6 +91,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "KAH-sah",
         exampleSentence: "Mi casa es pequeña.",
         explanation: "A common word for house.",
+        metadata: {
+          exampleMode: "guided_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
       {
         targetWord: "comer",
@@ -83,6 +102,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "ko-MEHR",
         exampleSentence: "Quiero comer ahora.",
         explanation: "A common verb for eating.",
+        metadata: {
+          exampleMode: "guided_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
       {
         targetWord: "amigo",
@@ -90,6 +113,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "ah-MEE-go",
         exampleSentence: "Él es mi amigo.",
         explanation: "A common noun for friend.",
+        metadata: {
+          exampleMode: "guided_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
     ],
   },
@@ -106,6 +133,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "heh-LOH",
         exampleSentence: "Hello, how are you?",
         explanation: "A very common way to greet someone.",
+        metadata: {
+          exampleMode: "micro_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
       {
         targetWord: "water",
@@ -113,6 +144,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "WAW-ter",
         exampleSentence: "I need water.",
         explanation: "A common everyday noun.",
+        metadata: {
+          exampleMode: "micro_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
       {
         targetWord: "friend",
@@ -120,6 +155,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "frend",
         exampleSentence: "She is my friend.",
         explanation: "A common noun for a person close to you.",
+        metadata: {
+          exampleMode: "guided_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
       {
         targetWord: "house",
@@ -127,6 +166,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "hous",
         exampleSentence: "This is my house.",
         explanation: "A common noun for where you live.",
+        metadata: {
+          exampleMode: "guided_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
       {
         targetWord: "eat",
@@ -134,6 +177,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "eet",
         exampleSentence: "We eat together.",
         explanation: "A basic everyday verb.",
+        metadata: {
+          exampleMode: "guided_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
       {
         targetWord: "book",
@@ -141,6 +188,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "buk",
         exampleSentence: "I have a book.",
         explanation: "A basic noun for reading material.",
+        metadata: {
+          exampleMode: "guided_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
     ],
   },
@@ -157,6 +208,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "na-mas-te",
         exampleSentence: "नमस्ते, तपाईंलाई कस्तो छ?",
         explanation: "A common greeting used to say hello.",
+        metadata: {
+          exampleMode: "micro_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
       {
         targetWord: "धन्यवाद",
@@ -164,6 +219,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "dha-nya-baad",
         exampleSentence: "तपाईंलाई धन्यवाद।",
         explanation: "Used to thank someone.",
+        metadata: {
+          exampleMode: "micro_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
       {
         targetWord: "पानी",
@@ -171,6 +230,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "paa-ni",
         exampleSentence: "मलाई पानी चाहिन्छ।",
         explanation: "The Nepali word for water.",
+        metadata: {
+          exampleMode: "micro_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
       {
         targetWord: "घर",
@@ -178,6 +241,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "ghar",
         exampleSentence: "यो मेरो घर हो।",
         explanation: "A common word for house.",
+        metadata: {
+          exampleMode: "guided_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
       {
         targetWord: "खानु",
@@ -185,6 +252,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "kha-nu",
         exampleSentence: "म खाना खानु चाहन्छु।",
         explanation: "A common verb for eating.",
+        metadata: {
+          exampleMode: "guided_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
       {
         targetWord: "साथी",
@@ -192,6 +263,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "saa-thi",
         exampleSentence: "ऊ मेरो साथी हो।",
         explanation: "A common noun for friend.",
+        metadata: {
+          exampleMode: "guided_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
     ],
   },
@@ -208,6 +283,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "bon-ZHOOR",
         exampleSentence: "Bonjour, comment ça va ?",
         explanation: "A common greeting used to say hello.",
+        metadata: {
+          exampleMode: "micro_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
       {
         targetWord: "merci",
@@ -215,6 +294,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "mehr-SEE",
         exampleSentence: "Merci pour ton aide.",
         explanation: "Used to thank someone.",
+        metadata: {
+          exampleMode: "micro_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
       {
         targetWord: "eau",
@@ -222,6 +305,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "oh",
         exampleSentence: "Je veux de l'eau.",
         explanation: "The French word for water.",
+        metadata: {
+          exampleMode: "micro_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
       {
         targetWord: "maison",
@@ -229,6 +316,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "meh-ZON",
         exampleSentence: "Ma maison est ici.",
         explanation: "A common noun for house.",
+        metadata: {
+          exampleMode: "guided_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
       {
         targetWord: "manger",
@@ -236,6 +327,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "mahn-ZHAY",
         exampleSentence: "Je vais manger maintenant.",
         explanation: "A basic verb for eating.",
+        metadata: {
+          exampleMode: "guided_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
       {
         targetWord: "ami",
@@ -243,6 +338,10 @@ const STARTER_DECKS: Record<string, StarterDeckConfig> = {
         pronunciation: "ah-MEE",
         exampleSentence: "Il est mon ami.",
         explanation: "A common noun for friend.",
+        metadata: {
+          exampleMode: "guided_sentence",
+          modeReason: "Starter beginner content",
+        },
       },
     ],
   },
@@ -469,17 +568,61 @@ async function ensureLearnerHasStarterCards(userId: string) {
   }
 }
 
-function bucketPriority(bucket: string) {
-  if (bucket === "hard") return 1;
-  if (bucket === "learning") return 2;
-  if (bucket === "known") return 3;
-  return 4;
-}
-
 function minutesSince(dateString: string | null) {
   if (!dateString) return Number.POSITIVE_INFINITY;
   const diffMs = Date.now() - new Date(dateString).getTime();
   return diffMs / (1000 * 60);
+}
+
+function computeQueueScore(card: QueueRow) {
+  const mastery = Number(card.mastery_score ?? 0);
+  const streak = Number(card.streak_count ?? 0);
+  const mins = minutesSince(card.last_reviewed_at);
+
+  let score = 0;
+
+  // Immediate bucket priority
+  if (card.bucket === "hard") {
+    score -= 250;
+  } else if (card.bucket === "learning") {
+    score -= 120;
+  } else if (card.bucket === "known") {
+    score += 60;
+  } else {
+    score += 100;
+  }
+
+  // Recent repeats penalty
+  if (mins < 5) score += 1000;
+  else if (mins < 15) score += 500;
+  else if (mins < 30) score += 220;
+  else if (mins < 60) score += 90;
+  else if (mins < 180) score += 20;
+
+  // Mastery influence
+  score += mastery * 2;
+
+  // Graduation behavior for known cards
+  if (card.bucket === "known") {
+    if (mastery >= 90 && streak >= 5) score += 400;
+    else if (mastery >= 80 && streak >= 4) score += 250;
+    else if (mastery >= 70 && streak >= 3) score += 120;
+  }
+
+  // Hard cards with low mastery should bubble up
+  if (card.bucket === "hard" && mastery <= 30) {
+    score -= 80;
+  }
+
+  // Learning cards with medium mastery stay important but not too repetitive
+  if (card.bucket === "learning" && mastery >= 60) {
+    score += 40;
+  }
+
+  // Slight reward for streak stability
+  score -= Math.min(streak, 10) * 6;
+
+  return score;
 }
 
 export async function GET() {
@@ -523,6 +666,7 @@ export async function GET() {
           c.example_translation_native,
           c.explanation,
           c.gloss_items_json,
+          c.metadata_json,
           d.title AS deck_title,
           d.language
         FROM learner_cards lc
@@ -534,57 +678,57 @@ export async function GET() {
             OR lc.next_review_at <= NOW()
           )
         ORDER BY
-          CASE
-            WHEN lc.bucket = 'hard' THEN 1
-            WHEN lc.bucket = 'learning' THEN 2
-            WHEN lc.bucket = 'known' THEN 3
-            ELSE 4
-          END,
           lc.next_review_at ASC NULLS FIRST,
           lc.last_reviewed_at ASC NULLS FIRST,
-          lc.mastery_score ASC,
           lc.created_at ASC
-        LIMIT 60
+        LIMIT 120
       `,
       [currentUser.id]
     );
 
-    const allDueCards: QueueRow[] = queueResult.rows;
+    const dueCards: QueueRow[] = queueResult.rows;
 
-    const rescored = allDueCards.map((card) => {
-      const mins = minutesSince(card.last_reviewed_at);
-      let repetitionPenalty = 0;
-
-      if (mins < 5) repetitionPenalty = 1000;
-      else if (mins < 15) repetitionPenalty = 400;
-      else if (mins < 30) repetitionPenalty = 150;
-      else if (mins < 60) repetitionPenalty = 50;
-
-      return {
+    const rescored = dueCards
+      .map((card) => ({
         ...card,
-        _score:
-          bucketPriority(card.bucket) * 100 +
-          (card.mastery_score ?? 0) * 2 +
-          repetitionPenalty -
-          Math.min(card.streak_count ?? 0, 10),
-      };
-    });
-
-    rescored.sort((a, b) => a._score - b._score);
+        _score: computeQueueScore(card),
+      }))
+      .sort((a, b) => a._score - b._score);
 
     const hardCards = rescored.filter((c) => c.bucket === "hard");
     const learningCards = rescored.filter((c) => c.bucket === "learning");
     const knownCards = rescored.filter((c) => c.bucket === "known");
+    const otherCards = rescored.filter(
+      (c) => c.bucket !== "hard" && c.bucket !== "learning" && c.bucket !== "known"
+    );
 
+    // Better mix:
+    // hard first, learning core, some known for reinforcement, then fill remaining
     const queue: QueueRow[] = [
       ...hardCards.slice(0, 4),
       ...learningCards.slice(0, 6),
       ...knownCards.slice(0, 2),
+      ...otherCards.slice(0, 2),
+      ...hardCards.slice(4, 6),
+      ...learningCards.slice(6, 10),
+      ...knownCards.slice(2, 4),
     ];
 
     const uniqueQueue = Array.from(
       new Map(queue.map((item) => [item.learner_card_id, item])).values()
-    ).slice(0, 12);
+    )
+      .slice(0, 12)
+      .map((item) => ({
+        ...item,
+        example_mode:
+          typeof item.metadata_json?.exampleMode === "string"
+            ? item.metadata_json.exampleMode
+            : "guided_sentence",
+        mode_reason:
+          typeof item.metadata_json?.modeReason === "string"
+            ? item.metadata_json.modeReason
+            : null,
+      }));
 
     return NextResponse.json({
       queue: uniqueQueue,

@@ -20,6 +20,10 @@ CREATE TABLE IF NOT EXISTS learner_profiles (
     onboarding_completed BOOLEAN NOT NULL DEFAULT FALSE,
     initial_quiz_completed BOOLEAN NOT NULL DEFAULT FALSE,
     daily_goal_words INT NOT NULL DEFAULT 10,
+    initial_assessment_completed_at TIMESTAMP NULL,
+    placement_last_completed_at TIMESTAMP NULL,
+    initial_assessment_locked BOOLEAN NOT NULL DEFAULT FALSE,
+    placement_version INT NOT NULL DEFAULT 1,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -44,8 +48,11 @@ CREATE TABLE IF NOT EXISTS decks (
     difficulty_level TEXT,
     category TEXT,
     quality_score NUMERIC(5,2) DEFAULT 0,
+    visibility TEXT NOT NULL DEFAULT 'private',
+    deck_origin TEXT NOT NULL DEFAULT 'internal',
     metadata_json JSONB DEFAULT '{}'::jsonb,
     created_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    owner_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
@@ -112,9 +119,11 @@ CREATE TABLE IF NOT EXISTS known_words (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     language TEXT NOT NULL,
     word TEXT NOT NULL,
+    source TEXT,
     source_card_id UUID REFERENCES cards(id) ON DELETE SET NULL,
     confidence_score INT NOT NULL DEFAULT 100,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
     UNIQUE (user_id, language, word)
 );
 
@@ -249,6 +258,18 @@ CREATE TABLE IF NOT EXISTS study_session_notes (
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
     UNIQUE (user_id, session_id)
+);
+
+CREATE TABLE IF NOT EXISTS deck_assignments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    deck_id UUID NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
+    assigned_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    assigned_to_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    assignment_status TEXT NOT NULL DEFAULT 'active',
+    due_at TIMESTAMP NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE(deck_id, assigned_to_user_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_learner_word_notes_user_card

@@ -8,6 +8,14 @@ type QuizWord = {
   translation: string;
 };
 
+type InitialQuizStatus = {
+  alreadyCompleted: boolean;
+  locked: boolean;
+  targetLanguage: string;
+  nativeLanguage: string;
+  learnerLevel: string;
+};
+
 export default function InitialQuizClient() {
   const router = useRouter();
 
@@ -21,21 +29,29 @@ export default function InitialQuizClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    async function loadProfileAndQuiz() {
+    async function loadStatusAndQuiz() {
       try {
-        const profileResponse = await fetch("/api/learner/profile");
-        const profileResult = await profileResponse.json();
+        const statusResponse = await fetch("/api/initial-quiz/status");
+        const statusResult: InitialQuizStatus | { error: string } = await statusResponse.json();
 
-        const language = profileResult?.profile?.target_language || "Spanish";
-        const native = profileResult?.profile?.native_language || "English";
-        const level =
-          profileResult?.profile?.verified_level ||
-          profileResult?.profile?.self_reported_level ||
-          "Beginner";
+        if (!statusResponse.ok) {
+          setMessage(
+            "error" in statusResult ? statusResult.error : "Failed to load initial quiz."
+          );
+          return;
+        }
 
-        setTargetLanguage(language);
-        setNativeLanguage(native);
-        setLearnerLevel(level);
+        const status = statusResult as InitialQuizStatus;
+
+        if (status.alreadyCompleted || status.locked) {
+          router.replace("/dashboard");
+          router.refresh();
+          return;
+        }
+
+        setTargetLanguage(status.targetLanguage);
+        setNativeLanguage(status.nativeLanguage);
+        setLearnerLevel(status.learnerLevel);
 
         const quizResponse = await fetch("/api/ai/generate-initial-quiz", {
           method: "POST",
@@ -43,10 +59,10 @@ export default function InitialQuizClient() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            target_language: language,
-            native_language: native,
-            learner_level: level,
-            quiz_size: 5,
+            target_language: status.targetLanguage,
+            native_language: status.nativeLanguage,
+            learner_level: status.learnerLevel,
+            quiz_size: 8,
           }),
         });
 
@@ -59,15 +75,15 @@ export default function InitialQuizClient() {
 
         setWords(quizResult.items || []);
       } catch (error) {
-        console.error("Failed to load AI initial quiz:", error);
+        console.error("Failed to load initial quiz:", error);
         setMessage("Failed to load initial quiz.");
       } finally {
         setIsLoadingQuiz(false);
       }
     }
 
-    loadProfileAndQuiz();
-  }, []);
+    loadStatusAndQuiz();
+  }, [router]);
 
   async function handleSubmit() {
     setIsSubmitting(true);
@@ -111,7 +127,7 @@ export default function InitialQuizClient() {
       }
 
       setMessage("Initial quiz saved. Redirecting to dashboard...");
-      router.push("/dashboard");
+      router.replace("/dashboard");
       router.refresh();
     } catch (error) {
       console.error(error);
@@ -125,19 +141,20 @@ export default function InitialQuizClient() {
     <div className="rounded-[28px] border border-stone-200 bg-[#FFFDF8] p-6 shadow-[0_18px_40px_rgba(60,40,20,0.08)] dark:border-white/10 dark:bg-[#0f172a] dark:shadow-none">
       <div className="mb-8">
         <p className="text-sm font-medium text-sky-700 dark:text-cyan-200">
-          Initial quiz
+          Getting started check
         </p>
         <h2 className="mt-2 text-3xl font-semibold tracking-tight">
           Basic {targetLanguage} words check
         </h2>
         <p className="mt-3 text-sm leading-6 text-stone-600 dark:text-slate-300">
-          AI-generated starter quiz for {targetLanguage}, tuned for a {learnerLevel} learner with {nativeLanguage} as the native language.
+          A short starter check for {targetLanguage}, tuned for a {learnerLevel} learner with{" "}
+          {nativeLanguage} as the native language.
         </p>
       </div>
 
       {isLoadingQuiz ? (
         <div className="rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-700 dark:border-white/10 dark:bg-black/20 dark:text-slate-200">
-          Generating your initial quiz...
+          Generating your starter check...
         </div>
       ) : null}
 
@@ -156,7 +173,7 @@ export default function InitialQuizClient() {
               onChange={(e) =>
                 setAnswers((prev) => ({ ...prev, [index]: e.target.value }))
               }
-              placeholder="Type meaning in English or your native language"
+              placeholder="Type the meaning in English or your native language"
               className="mt-3 w-full rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-black/20 dark:text-white"
             />
           </div>
@@ -174,7 +191,7 @@ export default function InitialQuizClient() {
           disabled={isSubmitting || isLoadingQuiz || words.length === 0}
           className="w-full rounded-2xl bg-stone-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-stone-800 disabled:opacity-60 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
         >
-          {isSubmitting ? "Saving..." : "Finish initial quiz"}
+          {isSubmitting ? "Saving..." : "Finish starter check"}
         </button>
       </div>
     </div>

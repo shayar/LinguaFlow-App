@@ -2,27 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAuthenticatedUserForApi } from "@/lib/auth-server";
 
-type ImportTatoebaCardBody = {
+type ImportCardBody = {
+  deckId?: string | null;
+  sentenceText: string;
+  sentenceLanguage: string;
   targetWord: string;
   translation: string;
-  language: string;
-  exampleSentence: string;
-  exampleTranslationNative?: string | null;
-  explanation?: string | null;
-  sourceSentenceId?: string | number | null;
-  sourceUrl?: string | null;
-  licenseLabel?: string | null;
+  learnerLevel?: string | null;
+  nativeLanguage?: string | null;
 };
 
-async function getOrCreateTatoebaSourceId() {
+async function ensureTatoebaSourceId() {
   const existing = await db.query(
     `
       SELECT id
       FROM content_sources
-      WHERE source_name = $1
+      WHERE source_name = 'Tatoeba'
       LIMIT 1
-    `,
-    ["Tatoeba"]
+    `
   );
 
   if (existing.rows.length > 0) {
@@ -37,11 +34,10 @@ async function getOrCreateTatoebaSourceId() {
         provider,
         source_url,
         license_label,
-        ingestion_status,
         quality_score,
         metadata_json
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
+      VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
       RETURNING id
     `,
     [
@@ -49,11 +45,10 @@ async function getOrCreateTatoebaSourceId() {
       "Tatoeba",
       "tatoeba",
       "https://tatoeba.org",
-      "CC-BY 2.0 FR",
-      "active",
-      85,
+      "Tatoeba license",
+      80,
       JSON.stringify({
-        description: "Imported multilingual example sentences from Tatoeba",
+        description: "Sentence imports from Tatoeba",
       }),
     ]
   );
@@ -61,148 +56,37 @@ async function getOrCreateTatoebaSourceId() {
   return inserted.rows[0].id as string;
 }
 
-function buildGlossItems(
-  sentence: string,
-  targetWord: string,
-  translation: string
-) {
-  const tokens = sentence.match(/[A-Za-zÀ-ÿ\u0900-\u097F']+|[.,!?;:¿¡]/g) ?? [];
-
-  return tokens.map((token) => {
-    const isTarget = token.toLowerCase() === targetWord.toLowerCase();
-
-    return {
-      token,
-      gloss: isTarget ? translation : "",
-      isTarget,
-    };
-  });
-}
-
 export async function POST(request: NextRequest) {
   try {
     const currentUser = await requireAuthenticatedUserForApi();
-    const body: ImportTatoebaCardBody = await request.json();
+    const body: ImportCardBody = await request.json();
 
     const {
+      deckId,
+      sentenceText,
+      sentenceLanguage,
       targetWord,
       translation,
-      language,
-      exampleSentence,
-      exampleTranslationNative,
-      explanation,
-      sourceSentenceId,
-      sourceUrl,
-      licenseLabel,
+      learnerLevel,
+      nativeLanguage,
     } = body;
 
-    if (!targetWord || !translation || !language || !exampleSentence) {
+    if (!sentenceText || !sentenceLanguage || !targetWord || !translation) {
       return NextResponse.json(
-        {
-          error: "Missing required information.",
-        },
+        { error: "Missing required information." },
         { status: 400 }
       );
     }
 
-    const profileResult = await db.query(
-      `
-        SELECT
-          native_language,
-          verified_level,
-          self_reported_level
-        FROM learner_profiles
-        WHERE user_id = $1
-        LIMIT 1
-      `,
-      [currentUser.id]
-    );
+    const tatoebaSourceId = await ensureTatoebaSourceId();
 
-    const profile = profileResult.rows[0] ?? {};
-    const nativeLanguage = profile.native_language ?? "English";
-    const learnerLevel =
-      profile.verified_level ?? profile.self_reported_level ?? "Beginner";
-
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-
-    let finalSentence = exampleSentence;
-    let finalExplanation =
-      explanation ?? "Imported from Tatoeba example sentence.";
-    let finalTranslationNative = exampleTranslationNative ?? null;
-    let finalCheck: any = null;
-
-    const checkedResponse = await fetch(
-      `${appUrl}/api/ai/generate-checked-example`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          targetWord,
-          translation,
-          targetLanguage: language,
-          learnerLevel,
-        }),
-      }
-    );
-
-    if (checkedResponse.ok) {
-      const checkedResult = await checkedResponse.json();
-
-      finalSentence = checkedResult.exampleSentence ?? exampleSentence;
-      finalExplanation =
-        checkedResult.explanation ?? finalExplanation;
-      finalTranslationNative =
-        checkedResult.exampleTranslationNative ?? finalTranslationNative;
-      finalCheck = checkedResult.finalCheck ?? null;
-    } else {
-      const translateResponse = await fetch(
-        `${appUrl}/api/ai/translate-sentence`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            sentence: exampleSentence,
-            target_language: language,
-            native_language: nativeLanguage,
-          }),
-        }
-      );
-
-      if (translateResponse.ok) {
-        const translateResult = await translateResponse.json();
-        finalTranslationNative =
-          translateResult.translated_sentence ?? finalTranslationNative;
-      }
-    }
-
-    const sourceId = await getOrCreateTatoebaSourceId();
+    let finalDeckId = deckId ?? null;
     const client = await db.connect();
 
     try {
       await client.query("BEGIN");
 
-      const deckTitle = `${language} Source Imports`;
-      let deckId: string;
-
-      const existingDeck = await client.query(
-        `
-          SELECT id
-          FROM decks
-          WHERE title = $1
-            AND language = $2
-            AND source_id = $3
-          LIMIT 1
-        `,
-        [deckTitle, language, sourceId]
-      );
-
-      if (existingDeck.rows.length > 0) {
-        deckId = existingDeck.rows[0].id;
-      } else {
+      if (!finalDeckId) {
         const insertedDeck = await client.query(
           `
             INSERT INTO decks (
@@ -213,29 +97,60 @@ export async function POST(request: NextRequest) {
               category,
               source_id,
               quality_score,
-              source_url,
+              owner_user_id,
+              visibility,
+              deck_origin,
               metadata_json
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb)
             RETURNING id
           `,
           [
-            deckTitle,
-            language,
+            `${sentenceLanguage} Tatoeba Imports`,
+            sentenceLanguage,
             "external_source",
-            learnerLevel,
-            "sentence-import",
-            sourceId,
-            85,
-            "https://tatoeba.org",
+            learnerLevel ?? "Beginner",
+            "tatoeba-import",
+            tatoebaSourceId,
+            80,
+            currentUser.id,
+            "private",
+            "imported",
             JSON.stringify({
-              sourceLabel: "Tatoeba",
-              importMode: "single-sentence",
+              provider: "tatoeba",
             }),
           ]
         );
 
-        deckId = insertedDeck.rows[0].id;
+        finalDeckId = insertedDeck.rows[0].id;
+      }
+
+      const checkedResponse = await fetch(
+        `${process.env.AI_SERVICE_URL}/generate-checked-example`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            target_word: targetWord,
+            translation,
+            target_language: sentenceLanguage,
+            learner_level: learnerLevel ?? "Beginner",
+            native_language: nativeLanguage ?? "English",
+            user_id: currentUser.id,
+          }),
+        }
+      );
+
+      const checkedResult = await checkedResponse.json();
+
+      if (!checkedResponse.ok) {
+        await client.query("ROLLBACK");
+        return NextResponse.json(
+          { error: checkedResult.detail || "Failed to generate checked example." },
+          { status: checkedResponse.status }
+        );
       }
 
       const insertedCard = await client.query(
@@ -255,26 +170,24 @@ export async function POST(request: NextRequest) {
           RETURNING id
         `,
         [
-          deckId,
+          finalDeckId,
           targetWord,
           translation,
           null,
-          finalSentence,
-          finalTranslationNative,
-          finalExplanation,
-          JSON.stringify(buildGlossItems(finalSentence, targetWord, translation)),
+          checkedResult.exampleSentence ?? sentenceText,
+          checkedResult.exampleTranslationNative ?? translation,
+          checkedResult.explanation ?? null,
+          JSON.stringify([]),
           JSON.stringify({
-            source: "tatoeba",
-            sourceSentenceId: sourceSentenceId ?? null,
-            sourceUrl: sourceUrl ?? null,
-            licenseLabel: licenseLabel ?? "CC-BY 2.0 FR",
-            adaptedForLearner: true,
-            finalCheck,
+            sourceProvider: "tatoeba",
+            importedSentence: sentenceText,
+            exampleMode: checkedResult.exampleMode ?? "guided_sentence",
+            modeReason: checkedResult.modeReason ?? null,
+            acceptedStrictly: checkedResult.acceptedStrictly ?? true,
+            finalCheck: checkedResult.finalCheck ?? null,
           }),
         ]
       );
-
-      const cardId = insertedCard.rows[0].id;
 
       await client.query(
         `
@@ -288,34 +201,34 @@ export async function POST(request: NextRequest) {
           VALUES ($1, $2, $3, $4, $5)
           ON CONFLICT (user_id, card_id) DO NOTHING
         `,
-        [currentUser.id, cardId, "learning", 0, 0]
+        [currentUser.id, insertedCard.rows[0].id, "learning", 0, 0]
       );
 
       await client.query("COMMIT");
 
       return NextResponse.json(
         {
-          message: "Tatoeba sentence imported successfully",
-          deckId,
-          cardId,
+          message: "Card imported successfully.",
+          deckId: finalDeckId,
+          cardId: insertedCard.rows[0].id,
         },
         { status: 201 }
       );
-    } catch (transactionError) {
+    } catch (error) {
       await client.query("ROLLBACK");
-      throw transactionError;
+      throw error;
     } finally {
       client.release();
     }
   } catch (error) {
     if (error instanceof Error && error.message === "UNAUTHORIZED") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
-    console.error("Import Tatoeba card error:", error);
+    console.error("Tatoeba import card API error:", error);
 
     return NextResponse.json(
-      { error: "Failed to import Tatoeba card" },
+      { error: "Failed to import card." },
       { status: 500 }
     );
   }

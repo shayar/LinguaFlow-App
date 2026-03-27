@@ -2,20 +2,80 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-const links = [
-  { href: "/dashboard", label: "Dashboard" },
+type MeResponse = {
+  user: {
+    id: string;
+    role: string;
+    fullName: string | null;
+    email: string;
+  } | null;
+};
+
+const learnerPrimaryLinks = [
+  { href: "/dashboard", label: "Home" },
   { href: "/study", label: "Study" },
-  { href: "/decks", label: "My Decks" },
+  { href: "/decks", label: "Decks" },
+  { href: "/community", label: "Community" },
+];
+
+const learnerSecondaryLinks = [
+  { href: "/placement", label: "Placement" },
   { href: "/build", label: "Build" },
-  { href: "/sentence-reviews", label: "Reviews" },
+];
+
+const teacherPrimaryLinks = [
+  { href: "/teacher", label: "Teacher" },
+  { href: "/teacher/progress", label: "Progress" },
+  { href: "/decks", label: "Decks" },
+];
+
+const teacherSecondaryLinks = [
+  { href: "/build", label: "Build" },
 ];
 
 export default function ProtectedHeader() {
   const pathname = usePathname();
   const router = useRouter();
+
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [role, setRole] = useState("learner");
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadMe() {
+      try {
+        const response = await fetch("/api/auth/me", {
+          method: "GET",
+          cache: "no-store",
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const result: MeResponse = await response.json();
+
+        if (result?.user?.role) {
+          setRole(result.user.role);
+        }
+      } catch (error) {
+        if (controller.signal.aborted) return;
+
+        // Fail softly in dev/reload situations.
+        setRole("learner");
+      }
+    }
+
+    void loadMe();
+
+    return () => {
+      controller.abort();
+    };
+  }, []);
 
   async function handleLogout() {
     try {
@@ -25,10 +85,7 @@ export default function ProtectedHeader() {
         method: "POST",
       });
 
-      if (!response.ok) {
-        console.error("Logout failed");
-        return;
-      }
+      if (!response.ok) return;
 
       router.push("/login");
       router.refresh();
@@ -39,19 +96,24 @@ export default function ProtectedHeader() {
     }
   }
 
+  const isTeacherMode = ["teacher", "community_manager"].includes(role);
+  const primaryLinks = isTeacherMode ? teacherPrimaryLinks : learnerPrimaryLinks;
+  const secondaryLinks = isTeacherMode ? teacherSecondaryLinks : learnerSecondaryLinks;
+  const homeHref = isTeacherMode ? "/teacher" : "/dashboard";
+
   return (
     <header className="sticky top-0 z-40 border-b border-stone-200 bg-[#F7F3EB]/90 backdrop-blur dark:border-white/10 dark:bg-[#111827]/85">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-4 lg:px-10">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4 lg:px-10">
         <Link
-          href="/dashboard"
+          href={homeHref}
           className="text-lg font-semibold tracking-tight text-stone-900 dark:text-white"
         >
           LinguaFlow
         </Link>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <nav className="flex flex-wrap items-center gap-2">
-            {links.map((link) => {
+        <div className="flex items-center gap-3">
+          <nav className="hidden items-center gap-2 md:flex">
+            {primaryLinks.map((link) => {
               const active = pathname === link.href;
 
               return (
@@ -69,6 +131,26 @@ export default function ProtectedHeader() {
               );
             })}
           </nav>
+
+          <div className="hidden items-center gap-2 lg:flex">
+            {secondaryLinks.map((link) => {
+              const active = pathname === link.href;
+
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`rounded-xl px-3 py-2 text-xs transition ${
+                    active
+                      ? "border border-stone-300 bg-stone-100 text-stone-900 dark:border-white/15 dark:bg-white/10 dark:text-white"
+                      : "border border-transparent bg-transparent text-stone-500 hover:text-stone-800 dark:text-slate-400 dark:hover:text-white"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </div>
 
           <button
             type="button"

@@ -1,11 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuthenticatedUserForApi } from "@/lib/auth-server";
 
+function toTatoebaLanguageCode(language: string | null | undefined) {
+  const normalized = (language ?? "").trim().toLowerCase();
+
+  const map: Record<string, string> = {
+    english: "eng",
+    spanish: "spa",
+    french: "fra",
+    german: "deu",
+    italian: "ita",
+    portuguese: "por",
+    nepali: "nep",
+    hindi: "hin",
+    japanese: "jpn",
+    korean: "kor",
+
+    eng: "eng",
+    spa: "spa",
+    fra: "fra",
+    fre: "fra",
+    deu: "deu",
+    ger: "deu",
+    ita: "ita",
+    por: "por",
+    nep: "nep",
+    hin: "hin",
+    jpn: "jpn",
+    kor: "kor",
+  };
+
+  return map[normalized] ?? normalized;
+}
+
 export async function POST(request: NextRequest) {
   try {
     await requireAuthenticatedUserForApi();
-
     const body = await request.json();
+
+    const normalizedBody = {
+      ...body,
+      from_language: toTatoebaLanguageCode(body.from_language),
+      to_language: body.to_language
+        ? toTatoebaLanguageCode(body.to_language)
+        : undefined,
+    };
 
     const response = await fetch(
       `${process.env.AI_SERVICE_URL}/sources/tatoeba/search`,
@@ -14,7 +53,7 @@ export async function POST(request: NextRequest) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(normalizedBody),
       }
     );
 
@@ -22,21 +61,24 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       return NextResponse.json(
-        { error: result.detail || "Tatoeba search is temporarily unavailable." },
+        {
+          error:
+            result.detail ||
+            result.error ||
+            "Failed to search Tatoeba.",
+        },
         { status: response.status }
       );
     }
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      items: result.items ?? result.results ?? [],
+    });
   } catch (error) {
-    if (error instanceof Error && error.message === "UNAUTHORIZED") {
-      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-    }
-
     console.error("Tatoeba search bridge error:", error);
 
     return NextResponse.json(
-      { error: "Failed to search Tatoeba." },
+      { error: "Tatoeba search is currently unavailable." },
       { status: 500 }
     );
   }

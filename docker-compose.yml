@@ -11,6 +11,9 @@ services:
     depends_on:
       - postgres
       - mongo
+      - redis
+    environment:
+      REDIS_URL: redis://redis:6379/0
 
   ai-service:
     build:
@@ -23,6 +26,11 @@ services:
     depends_on:
       - postgres
       - mongo
+      - redis
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      WEB_INTERNAL_BASE_URL: http://web:3000
+      QUIZ_CACHE_VERSION: 1
 
   core-service:
     build:
@@ -53,6 +61,16 @@ services:
     volumes:
       - mongo_data:/data/db
 
+  redis:
+    image: redis:7
+    container_name: linguaflow-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
 volumes:
   postgres_data:
   mongo_data:
+  redis_data:

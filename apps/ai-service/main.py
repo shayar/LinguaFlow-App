@@ -1,6 +1,7 @@
 from __future__ import annotations
 from tatoeba_adapter import search_tatoeba_sentences
 
+import hashlib
 import json
 import os
 import re
@@ -11,7 +12,18 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from openai import OpenAI
 from pydantic import BaseModel
-from placement_quiz import build_adaptive_quiz_from_bank, build_placement_prompt, parse_quiz_items_from_text
+from redis.asyncio import Redis
+
+from placement_quiz import (
+    build_adaptive_quiz_from_bank,
+    build_placement_prompt,
+    parse_quiz_items_from_text,
+)
+from example_mode import (
+    choose_example_mode,
+    build_mode_prompt,
+    fallback_content_for_mode,
+)
 
 try:
     from tracing import setup_tracing
@@ -32,7 +44,38 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:1143
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
 OLLAMA_TIMEOUT_SECONDS = float(os.getenv("OLLAMA_TIMEOUT_SECONDS", "180"))
 
+WEB_INTERNAL_BASE_URL = os.getenv("WEB_INTERNAL_BASE_URL", "http://web:3000")
+REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+QUIZ_CACHE_VERSION = int(os.getenv("QUIZ_CACHE_VERSION", "1"))
+
 openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+_shared_http_client: httpx.AsyncClient | None = None
+redis_client: Redis | None = None
+
+
+def get_http_client() -> httpx.AsyncClient:
+    global _shared_http_client
+    if _shared_http_client is None:
+        _shared_http_client = httpx.AsyncClient(timeout=60.0)
+    return _shared_http_client
+
+
+def get_redis_client() -> Redis:
+    global redis_client
+    if redis_client is None:
+        redis_client = Redis.from_url(REDIS_URL, decode_responses=True)
+    return redis_client
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    global _shared_http_client, redis_client
+    if _shared_http_client is not None:
+        await _shared_http_client.aclose()
+        _shared_http_client = None
+    if redis_client is not None:
+        await redis_client.aclose()
+        redis_client = None
 
 
 class ExampleRequest(BaseModel):
@@ -41,6 +84,15 @@ class ExampleRequest(BaseModel):
     target_language: str
     learner_level: str | None = None
     native_language: str | None = None
+
+
+class GenerateCheckedExampleRequest(BaseModel):
+    target_word: str
+    translation: str
+    target_language: str
+    learner_level: str | None = None
+    native_language: str | None = None
+    user_id: str | None = None
 
 
 class DeckGenerationRequest(BaseModel):
@@ -72,12 +124,14 @@ class SentenceTranslationRequest(BaseModel):
     target_language: str
     native_language: str | None = None
 
+
 class TatoebaSearchRequest(BaseModel):
     query: str
     from_language: str
     to_language: str | None = None
     page: int | None = 1
     page_size: int | None = 10
+
 
 SIMPLIFICATION_MAP = {
     "feline": "cat",
@@ -144,6 +198,7 @@ def build_explanation(target_word: str, translation: str, learner_level: str) ->
 
     return f"'{target_word}' means '{translation}'."
 
+
 def build_word_translation_prompt(
     word: str,
     target_language: str,
@@ -164,6 +219,7 @@ Rules:
 Word:
 {word}
 """.strip()
+
 
 def build_native_translation(
     sentence: str,
@@ -339,35 +395,6 @@ Rules:
 
 Original sentence:
 {previous_sentence}
-""".strip()
-
-
-def build_initial_quiz_prompt(
-    target_language: str,
-    native_language: str | None,
-    learner_level: str | None,
-    quiz_size: int,
-) -> str:
-    return f"""
-Generate a very basic vocabulary quiz for a language learner.
-
-Rules:
-- Target language: {target_language}
-- Learner native language: {native_language or "English"}
-- Learner level: {learner_level or "Beginner"}
-- Number of quiz words: {quiz_size}
-- Pick extremely common beginner words
-- Good categories: greeting, thank you, water, house, eat
-- Return JSON only
-- Format:
-{{
-  "items": [
-    {{
-      "targetWord": "....",
-      "translation": "...."
-    }}
-  ]
-}}
 """.strip()
 
 
@@ -619,6 +646,55 @@ async def refine_sentence(
     return rewritten, replacements_used, "mock-rule-based"
 
 
+def build_quiz_cache_key(
+    quiz_type: str,
+    target_language: str,
+    native_language: str | None,
+    learner_level: str | None,
+    quiz_size: int,
+) -> str:
+    raw = "|".join(
+        [
+            quiz_type,
+            (target_language or "").strip().lower(),
+            (native_language or "english").strip().lower(),
+            (learner_level or "beginner").strip().lower(),
+            str(quiz_size),
+            f"v{QUIZ_CACHE_VERSION}",
+        ]
+    )
+    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    return f"lf:quiz:{digest}"
+
+
+async def read_quiz_cache(cache_key: str) -> list[dict] | None:
+    try:
+        cached = await get_redis_client().get(cache_key)
+        if not cached:
+            return None
+        payload = json.loads(cached)
+        if isinstance(payload, list):
+            return payload
+        return None
+    except Exception:
+        return None
+
+
+async def write_quiz_cache(
+    cache_key: str,
+    items: list[dict],
+    ttl_seconds: int = 60 * 60 * 24 * 30,
+) -> None:
+    try:
+        await get_redis_client().set(
+            cache_key,
+            json.dumps(items),
+            ex=ttl_seconds,
+        )
+    except Exception:
+        pass
+
+
 def generate_initial_quiz_with_openai(
     target_language: str,
     native_language: str | None,
@@ -716,21 +792,35 @@ async def generate_initial_quiz(
 ) -> list[dict]:
     quiz_size = max(8, min(quiz_size, 15))
 
-    if AI_PROVIDER == "openai":
-        return generate_initial_quiz_with_openai(
-            target_language, native_language, learner_level, quiz_size
-        )
-
-    if AI_PROVIDER == "ollama":
-        return await generate_initial_quiz_with_ollama(
-            target_language, native_language, learner_level, quiz_size
-        )
-
-    return build_adaptive_quiz_from_bank(
+    cache_key = build_quiz_cache_key(
+        quiz_type="placement",
         target_language=target_language,
+        native_language=native_language,
         learner_level=learner_level,
         quiz_size=quiz_size,
     )
+
+    cached_items = await read_quiz_cache(cache_key)
+    if cached_items:
+        return cached_items
+
+    if AI_PROVIDER == "openai":
+        items = generate_initial_quiz_with_openai(
+            target_language, native_language, learner_level, quiz_size
+        )
+    elif AI_PROVIDER == "ollama":
+        items = await generate_initial_quiz_with_ollama(
+            target_language, native_language, learner_level, quiz_size
+        )
+    else:
+        items = build_adaptive_quiz_from_bank(
+            target_language=target_language,
+            learner_level=learner_level,
+            quiz_size=quiz_size,
+        )
+
+    await write_quiz_cache(cache_key, items)
+    return items
 
 
 def translate_sentence_with_openai(
@@ -821,12 +911,14 @@ async def translate_sentence(
 
     return build_native_translation(sentence, "", "", native_language)
 
+
 def normalize_translation_text(text: str) -> str:
     return text.strip().strip('"').strip("'")
 
 
 def fallback_word_translation(word: str) -> str:
     return word
+
 
 def translate_word_with_openai(
     word: str,
@@ -859,6 +951,7 @@ def translate_word_with_openai(
         return normalize_translation_text(str(translation))
     except Exception:
         return normalize_translation_text(text.splitlines()[0])
+
 
 async def translate_word_with_ollama(
     word: str,
@@ -903,6 +996,7 @@ async def translate_word_with_ollama(
     except Exception:
         return fallback_word_translation(word)
 
+
 async def translate_word(
     word: str,
     target_language: str,
@@ -926,6 +1020,102 @@ async def translate_word(
         )
 
     return fallback_word_translation(word)
+
+
+async def fetch_known_word_count(
+    user_id: str | None,
+    target_language: str,
+) -> int:
+    if not user_id:
+        return 0
+
+    try:
+        response = await get_http_client().get(
+            f"{WEB_INTERNAL_BASE_URL}/api/internal/known-words/count",
+            params={
+                "userId": user_id,
+                "language": target_language,
+            },
+        )
+        response.raise_for_status()
+        payload = response.json()
+        return int(payload.get("count", 0))
+    except Exception:
+        return 0
+
+
+async def generate_adaptive_example_content(
+    target_word: str,
+    translation: str,
+    target_language: str,
+    native_language: str | None,
+    learner_level: str | None,
+    known_word_count: int,
+) -> dict:
+    decision = choose_example_mode(
+        known_word_count=known_word_count,
+        learner_level=learner_level,
+    )
+
+    prompt = build_mode_prompt(
+        mode=decision.mode,
+        target_word=target_word,
+        translation=translation,
+        target_language=target_language,
+        native_language=native_language,
+        learner_level=learner_level,
+    )
+
+    try:
+        if AI_PROVIDER == "openai" and openai_client:
+            response = openai_client.responses.create(
+                model=OPENAI_MODEL,
+                input=prompt,
+            )
+            text = extract_text_from_openai_response(response) or ""
+        elif AI_PROVIDER == "ollama":
+            async with httpx.AsyncClient(timeout=OLLAMA_TIMEOUT_SECONDS) as client:
+                response = await client.post(
+                    f"{OLLAMA_BASE_URL}/api/generate",
+                    json={
+                        "model": OLLAMA_MODEL,
+                        "prompt": prompt,
+                        "stream": False,
+                    },
+                )
+            response.raise_for_status()
+            payload = response.json()
+            text = (payload.get("response") or "").strip()
+        else:
+            text = ""
+    except Exception:
+        text = ""
+
+    content = ""
+    if text:
+        try:
+            start = text.find("{")
+            end = text.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                parsed = json.loads(text[start : end + 1])
+                content = str(parsed.get("content", "")).strip()
+        except Exception:
+            content = ""
+
+    if not content:
+        content = fallback_content_for_mode(
+            mode=decision.mode,
+            target_word=target_word,
+            translation=translation,
+        )
+
+    return {
+        "content": content,
+        "example_mode": decision.mode,
+        "reason": decision.reason,
+        "known_word_count": decision.known_word_count,
+    }
+
 
 def is_noise_token(word: str) -> bool:
     if len(word) < 2:
@@ -986,6 +1176,7 @@ def extract_candidate_words(source_text: str) -> list[str]:
     ranked = sorted(unique_words, key=score_candidate_word, reverse=True)
     return ranked[:12]
 
+
 @app.post("/generate-example")
 async def generate_example(payload: ExampleRequest):
     level = payload.learner_level or "Beginner"
@@ -1027,6 +1218,65 @@ async def generate_example(payload: ExampleRequest):
         "gloss_items": gloss_items,
         "explanation": explanation,
         "provider_used": AI_PROVIDER,
+    }
+
+
+@app.post("/generate-checked-example")
+async def generate_checked_example_endpoint(payload: GenerateCheckedExampleRequest):
+    known_word_count = await fetch_known_word_count(
+        user_id=payload.user_id,
+        target_language=payload.target_language,
+    )
+
+    adaptive = await generate_adaptive_example_content(
+        target_word=payload.target_word,
+        translation=payload.translation,
+        target_language=payload.target_language,
+        native_language=payload.native_language,
+        learner_level=payload.learner_level,
+        known_word_count=known_word_count,
+    )
+
+    generated_content = adaptive["content"]
+
+    final_check = {
+        "advancedWordCount": 0,
+        "unknownNonFocusWords": [],
+        "knownWordsMatched": [],
+        "acceptedStrictly": True,
+    }
+
+    if adaptive["example_mode"] in {"micro_sentence", "guided_sentence", "natural_sentence"}:
+        try:
+            check_response = await get_http_client().post(
+                f"{WEB_INTERNAL_BASE_URL}/api/ai/check-sentence-internal",
+                json={
+                    "userId": payload.user_id,
+                    "sentence": generated_content,
+                    "targetLanguage": payload.target_language,
+                    "targetWord": payload.target_word,
+                },
+            )
+            if check_response.status_code == 200:
+                final_check = check_response.json()
+        except Exception:
+            pass
+
+    explanation = (
+        f"{payload.target_word} is shown in {adaptive['example_mode'].replace('_', ' ')} mode "
+        f"because the learner currently knows about {adaptive['known_word_count']} words."
+    )
+
+    return {
+        "exampleSentence": generated_content,
+        "exampleTranslationNative": payload.translation,
+        "explanation": explanation,
+        "exampleMode": adaptive["example_mode"],
+        "modeReason": adaptive["reason"],
+        "iterationsUsed": 1,
+        "acceptedStrictly": final_check.get("acceptedStrictly", True),
+        "finalCheck": final_check,
+        "refinementHistory": [],
     }
 
 
@@ -1097,7 +1347,7 @@ async def generate_deck_from_text(payload: DeckGenerationRequest):
         cleaned = [part.strip() for part in parts if part and part.strip()]
         return cleaned
 
-    def is_noise_token(word: str) -> bool:
+    def is_noise_token_local(word: str) -> bool:
         if len(word) < 2:
             return True
         if len(word) > 24:
@@ -1166,7 +1416,7 @@ async def generate_deck_from_text(payload: DeckGenerationRequest):
                 discarded_token_count += 1
                 continue
 
-            if is_noise_token(word):
+            if is_noise_token_local(word):
                 discarded_token_count += 1
                 continue
 
@@ -1249,6 +1499,7 @@ async def generate_deck_from_text(payload: DeckGenerationRequest):
         "source_sentence_count": len(source_sentences),
     }
 
+
 @app.post("/generate-initial-quiz")
 async def generate_initial_quiz_endpoint(payload: InitialQuizRequest):
     quiz_size = payload.quiz_size or 5
@@ -1286,6 +1537,7 @@ async def translate_sentence_endpoint(payload: SentenceTranslationRequest):
         "provider_used": AI_PROVIDER,
     }
 
+
 @app.post("/sources/tatoeba/search")
 async def tatoeba_search_endpoint(payload: TatoebaSearchRequest):
     if not payload.query or not payload.from_language:
@@ -1300,7 +1552,7 @@ async def tatoeba_search_endpoint(payload: TatoebaSearchRequest):
             page_size=payload.page_size or 10,
         )
         return result
-    except Exception as error:
+    except Exception:
         raise HTTPException(
             status_code=500,
             detail="Tatoeba search is temporarily unavailable.",

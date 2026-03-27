@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
           UPDATE learner_profiles
           SET
             verified_level = $1,
+            placement_last_completed_at = NOW(),
             updated_at = NOW()
           WHERE user_id = $2
         `,
@@ -136,7 +137,7 @@ export async function POST(request: NextRequest) {
             targetLanguage,
             item.targetWord.toLowerCase(),
             "placement_quiz",
-            1.0,
+            100,
           ]
         );
       }
@@ -162,7 +163,7 @@ export async function POST(request: NextRequest) {
             targetLanguage,
             item.targetWord.toLowerCase(),
             "placement_quiz_unsure",
-            0.5,
+            50,
           ]
         );
       }

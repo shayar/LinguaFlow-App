@@ -9,6 +9,17 @@ type QuizItem = {
   difficulty?: "easy" | "medium" | "hard";
 };
 
+type PlacementStatus = {
+  profile: {
+    native_language: string;
+    target_language: string;
+    verified_level: string | null;
+    self_reported_level: string | null;
+    placement_last_completed_at: string | null;
+    placement_version: number;
+  };
+};
+
 type PlacementPayload = {
   profile: {
     native_language: string;
@@ -23,16 +34,44 @@ type PlacementPayload = {
 export default function PlacementQuizClient() {
   const router = useRouter();
 
+  const [status, setStatus] = useState<PlacementStatus | null>(null);
   const [payload, setPayload] = useState<PlacementPayload | null>(null);
   const [message, setMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingStatus, setIsLoadingStatus] = useState(true);
+  const [isLoadingQuiz, setIsLoadingQuiz] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [answers, setAnswers] = useState<Record<number, "know" | "unsure" | "dont_know">>({});
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
+    async function loadStatus() {
+      try {
+        const response = await fetch("/api/placement/status");
+        const result = await response.json();
+
+        if (!response.ok) {
+          setMessage(result.error || "Failed to load placement status.");
+          return;
+        }
+
+        setStatus(result);
+
+        if (!result.profile?.placement_last_completed_at) {
+          await loadQuiz();
+        }
+      } catch (error) {
+        console.error(error);
+        setMessage("Failed to load placement status.");
+      } finally {
+        setIsLoadingStatus(false);
+      }
+    }
+
     async function loadQuiz() {
       try {
+        setIsLoadingQuiz(true);
+        setMessage("");
+
         const response = await fetch("/api/placement");
         const result = await response.json();
 
@@ -42,16 +81,42 @@ export default function PlacementQuizClient() {
         }
 
         setPayload(result);
+        setAnswers({});
+        setCurrentIndex(0);
       } catch (error) {
         console.error(error);
         setMessage("Failed to load placement quiz.");
       } finally {
-        setIsLoading(false);
+        setIsLoadingQuiz(false);
       }
     }
 
-    loadQuiz();
+    loadStatus();
   }, []);
+
+  async function startRetake() {
+    try {
+      setIsLoadingQuiz(true);
+      setMessage("");
+
+      const response = await fetch("/api/placement");
+      const result = await response.json();
+
+      if (!response.ok) {
+        setMessage(result.error || "Failed to load placement quiz.");
+        return;
+      }
+
+      setPayload(result);
+      setAnswers({});
+      setCurrentIndex(0);
+    } catch (error) {
+      console.error(error);
+      setMessage("Failed to load placement quiz.");
+    } finally {
+      setIsLoadingQuiz(false);
+    }
+  }
 
   const items = payload?.items ?? [];
   const currentItem = items[currentIndex] ?? null;
@@ -105,7 +170,7 @@ export default function PlacementQuizClient() {
         `Placement complete. Verified level: ${result.verifiedLevel}. Taking you to study...`
       );
 
-      router.push("/study");
+      router.replace("/study");
       router.refresh();
     } catch (error) {
       console.error(error);
@@ -130,17 +195,22 @@ export default function PlacementQuizClient() {
     }
   }
 
+  const currentLevel =
+    status?.profile?.verified_level ??
+    status?.profile?.self_reported_level ??
+    "Beginner";
+
   return (
     <div className="space-y-8">
       <div>
         <p className="text-sm font-medium text-sky-700 dark:text-cyan-200">
-          Placement quiz
+          Placement
         </p>
         <h1 className="mt-2 text-4xl font-semibold tracking-tight text-stone-900 dark:text-white sm:text-5xl">
-          Find your starting level
+          Check your level
         </h1>
         <p className="mt-4 max-w-3xl text-base leading-7 text-stone-600 dark:text-slate-300">
-          We’ll use this to personalize your first words, examples, and review pace.
+          We use this to personalize your examples, review pace, and starter vocabulary.
         </p>
       </div>
 
@@ -150,13 +220,73 @@ export default function PlacementQuizClient() {
         </div>
       ) : null}
 
-      {isLoading ? (
+      {isLoadingStatus ? (
+        <div className="rounded-2xl border border-stone-200 bg-white px-4 py-6 text-sm text-stone-700 dark:border-white/10 dark:bg-black/20 dark:text-slate-200">
+          Loading placement status...
+        </div>
+      ) : null}
+
+      {!isLoadingStatus && status && !payload ? (
+        <div className="rounded-[32px] border border-stone-200 bg-[#FFFDF8] p-8 dark:border-white/10 dark:bg-[#0f172a]">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-2xl border border-stone-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+              <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-slate-400">
+                Target language
+              </p>
+              <p className="mt-2 text-lg font-semibold text-stone-900 dark:text-white">
+                {status.profile.target_language}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-stone-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+              <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-slate-400">
+                Current level
+              </p>
+              <p className="mt-2 text-lg font-semibold text-stone-900 dark:text-white">
+                {currentLevel}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-stone-200 bg-white p-5 dark:border-white/10 dark:bg-white/5">
+            <p className="text-xs uppercase tracking-wide text-stone-500 dark:text-slate-400">
+              Last completed
+            </p>
+            <p className="mt-2 text-sm font-medium text-stone-900 dark:text-white">
+              {status.profile.placement_last_completed_at
+                ? new Date(status.profile.placement_last_completed_at).toLocaleString()
+                : "Not yet"}
+            </p>
+          </div>
+
+          <div className="mt-6 flex gap-3">
+            <button
+              type="button"
+              onClick={() => void startRetake()}
+              disabled={isLoadingQuiz}
+              className="rounded-2xl bg-stone-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-stone-800 disabled:opacity-60 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
+            >
+              {isLoadingQuiz ? "Loading..." : "Retake placement"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push("/study")}
+              className="rounded-2xl border border-stone-200 bg-white px-5 py-3 text-sm font-medium text-stone-800 transition hover:bg-stone-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+            >
+              Go to study
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {isLoadingQuiz ? (
         <div className="rounded-2xl border border-stone-200 bg-white px-4 py-6 text-sm text-stone-700 dark:border-white/10 dark:bg-black/20 dark:text-slate-200">
           Building your placement quiz...
         </div>
       ) : null}
 
-      {!isLoading && payload ? (
+      {!isLoadingQuiz && payload ? (
         <div className="space-y-6">
           <div className="rounded-[28px] border border-stone-200 bg-[#FFFDF8] p-5 dark:border-white/10 dark:bg-[#0f172a]">
             <div className="flex flex-wrap items-center justify-between gap-3">

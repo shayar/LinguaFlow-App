@@ -33,6 +33,32 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const session = sessionResult.rows[0];
+
+    if (!session.ended_at) {
+      await db.query(
+        `
+          UPDATE study_sessions
+          SET ended_at = NOW()
+          WHERE id = $1
+            AND user_id = $2
+            AND ended_at IS NULL
+        `,
+        [sessionId, currentUser.id]
+      );
+    }
+
+    const refreshedSessionResult = await db.query(
+      `
+        SELECT id, started_at, ended_at, session_type
+        FROM study_sessions
+        WHERE id = $1
+          AND user_id = $2
+        LIMIT 1
+      `,
+      [sessionId, currentUser.id]
+    );
+
     const summaryResult = await db.query(
       `
         SELECT
@@ -69,7 +95,7 @@ export async function GET(request: NextRequest) {
     );
 
     return NextResponse.json({
-      session: sessionResult.rows[0],
+      session: refreshedSessionResult.rows[0],
       summary: summaryResult.rows[0] ?? {
         total_reviews: 0,
         known_count: 0,
